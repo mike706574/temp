@@ -27,13 +27,14 @@
     (or (not-acceptable request #{"text/plain"})
         (with-body [credentials :bottle/credentials request]
           (if-let [user (users/authenticate user-manager credentials)]
-            {:status 201
-             :headers {"Content-Type" "text/plain"}
-             :body (auth/token authenticator (:bottle/username credentials))}
-            {:status 401})))
+            (do (log/info (str "Authenticated user: " user))
+                {:status 201
+                 :headers {"Content-Type" "text/plain"}
+                 :body (auth/token authenticator (:bottle/username credentials))})
+            (do (log/info (str "Authentication failed. "))
+                {:status 401}))))
     (catch Exception e
       (log/error e "An exception was thrown while processing a request.")
-      (.printStackTrace e)
       {:status 500
        :headers {"Content-Type" "text/plain"}
        :body "An error occurred."})))

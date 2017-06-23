@@ -60,7 +60,7 @@
     (let [response @(http/post (str (http-url host) "/api/tokens")
                                {:headers {"Content-Type" "application/json"
                                           "Accept" "text/plain"}
-                                :body (message/encode "application/json" credentials)
+                                :body (String. (message/encode "application/json" credentials) "UTF-8")
                                 :throw-exceptions false})]
 
       (if (= (:status response) 201)

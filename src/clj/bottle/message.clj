@@ -5,10 +5,11 @@
             [clojure.spec.alpha :as s]
             [cognitect.transit :as transit]))
 
-(def supported-content-type #{"application/edn"
-                              "application/json"
-                              "application/transit+json"
-                              "application/transit+msgpack"})
+(def supported-content-type #{"text/plain"
+                            "application/edn"
+                            "application/json"
+                            "application/transit+json"
+                            "application/transit+msgpack"})
 
 (def ^:private byte-array-type (type (byte-array [])))
 (def byte-array? (partial instance? byte-array-type))
@@ -46,19 +47,15 @@
   [_ body]
   (json/read (io/reader body) :key-fn keyword))
 
+(defmethod decode-stream "text/plain"
+  [_ body]
+  (slurp body))
+
 (defmethod decode-stream :default
   [content-type body]
   (throw (ex-info (str "Content type \"" content-type "\" is not supported.")
                   {:body body
                    :content-type content-type})))
-
-(defn ^:private decode-string
-  [content-type body]
-  (decode-stream content-type ))
-
-(defn ^:private decode-bytes
-  [content-type body]
-  (decode-stream content-type ))
 
 (defn decode
   [content-type body]
@@ -79,6 +76,10 @@
 (defmulti encode
   "Encodes the string using the given content-type."
   (fn [content-type body] content-type))
+
+(defmethod encode "text/plain"
+  [_ body]
+  (.getBytes (pr-str body)))
 
 (defmethod encode "application/json"
   [_ body]

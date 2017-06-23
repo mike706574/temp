@@ -96,7 +96,6 @@
   []
   (stop)
   (refresh :after `go))
-
 (defn restart
   "Stops the system, reloads modified source files, and restarts it."
   []
