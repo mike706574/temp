@@ -1,25 +1,28 @@
 (ns bottle.things
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
-            [bottle.specs]))
+            [bottle.specs]
+            [taoensso.timbre :as log]))
 
-;; protocol
 (defprotocol ThingRepo
   "Stores things."
-  (search [this search-term] "Searchs for things."))
+  (-search [this search-term] "Searchs for things."))
 
-;; static implementation
 (defrecord StaticThingRepo [things]
   ThingRepo
-  (search [this term]
+  (-search [this term]
+    (log/debug "Everything:" things)
     (filter #(str/includes? (:id %) term) things)))
 
-;; constructor
-(defn repo [config]
-  (map->StaticThingRepo {:bottle/things config}))
+(defn search [repo term]
+  (log/debug (str "Searching for things containing \"" term "\"."))
+  (-search repo term))
 
-;; specs
+(defn repo [config]
+  (map->StaticThingRepo {:things (:bottle/things config)}))
+
 (s/def :bottle/thing-repo (partial satisfies? ThingRepo))
+(s/def :bottle/search-term string?)
 
 (s/fdef search
   :args (s/cat :repo :bottle/thing-repo

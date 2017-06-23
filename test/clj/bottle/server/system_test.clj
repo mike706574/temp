@@ -5,7 +5,6 @@
             [bottle.message :as message]
             [bottle.server.system :as system]
             [bottle.things :as things]
-            [bottle.util :as util :refer [map-vals]]
             [com.stuartsierra.component :as component]
             [clojure.test :refer [deftest testing is]]
             [manifold.bus :as bus]
@@ -41,8 +40,9 @@
           foo-1 {:bottle/category :foo
                  :bottle/closed? false
                  :count 4 }]
-      (println client)
-      ;; query
-#_      (unpack-response (client/search client "a")
-        (is (= 200 status))
-        (is (= [] body))))))
+      ;; queyr
+
+       (client/search client "a")
+))
+
+  )

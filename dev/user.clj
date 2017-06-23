@@ -106,6 +106,16 @@
   (-> {:host (str "localhost:" port)}
       (client/client)
       (client/authenticate {:bottle/username "mike"
-                            :bottle/password "rocket"}))
+                            :bottle/password "rocket"})
+      (client/search "b"))
 
+  (-> @(http/get "http://localhost:8001/foo")
+      :body
+      slurp)
+
+  (:thing-repo system)
   )
+
+(namespace :foo)
+(str :foo/bar)
+(name :foo/bar)

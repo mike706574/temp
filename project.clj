@@ -17,18 +17,8 @@
                  [environ "1.1.0"]
                  [clj-time "0.13.0"]
 
-                 ;; Messaging
-                 [com.rabbitmq/amqp-client "4.1.1"]
-                 [org.apache.activemq/activemq-core "5.7.0"]
-
                  ;; Logging
                  [com.taoensso/timbre "4.10.0"]
-
-                 ;; Database
-                 [org.clojure/java.jdbc "0.6.1"]
-                 [clojure.jdbc/clojure.jdbc-c3p0 "0.3.2"]
-                 [postgresql "9.3-1102.jdbc41"]
-                 [mysql/mysql-connector-java "6.0.6"]
 
                  ;; Web
                  [aleph "0.4.3"]

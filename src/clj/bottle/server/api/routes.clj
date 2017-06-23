@@ -14,12 +14,14 @@
             [taoensso.timbre :as log]))
 
 (defn retrieve-things
-  [{:keys [thing-repo]} {term :term :as request}]
+  [{:keys [thing-repo]} request]
   (handle-exceptions request
-    (or (unsupported-media-type request)
-        (let [things (things/search thing-repo term)]
-          (Thread/sleep 300)
-          (body-response 200 request things)))))
+    (or (not-acceptable request)
+        (if-let [term (get-in request [:headers :term])]
+          (let [things (things/search thing-repo term)]
+            (Thread/sleep 300)
+            (body-response 200 request things))
+          (body-response 400 request {:bottle.server/message (str "Missing required query parameter: term")})))))
 
 (defn create-token
   [{:keys [user-manager authenticator]} request]
@@ -27,12 +29,12 @@
     (or (not-acceptable request #{"text/plain"})
         (with-body [credentials :bottle/credentials request]
           (if-let [user (users/authenticate user-manager credentials)]
-            (do (log/info (str "Authenticated user: " user))
-                {:status 201
-                 :headers {"Content-Type" "text/plain"}
-                 :body (auth/token authenticator (:bottle/username credentials))})
-            (do (log/info (str "Authentication failed. "))
-                {:status 401}))))
+            {:status 201
+             :headers {"Content-Type" "text/plain"}
+             :body (auth/token authenticator (:bottle/username credentials))}
+            {:status 401
+             :headers {"Content-Type" "text/plain"}
+             :body "Authentication failed."})))
     (catch Exception e
       (log/error e "An exception was thrown while processing a request.")
       {:status 500
@@ -46,6 +48,6 @@
               {:status 401}))]
     (compojure/routes
      (GET "/api/healthcheck" request {:status 200})
-     (GET "/api/things/:term" request (retrieve-things deps request))
+     (GET "/api/things" request (retrieve-things deps request))
      (POST "/api/tokens" request (create-token deps request))
      (route/not-found {:status 404}))))

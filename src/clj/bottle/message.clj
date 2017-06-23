@@ -1,7 +1,8 @@
 (ns bottle.message
-  (:require [clojure.data.json :as json]
-            [clojure.java.io :as io]
+  (:require [bottle.util :as util]
+            [clojure.data.json :as json]
             [clojure.edn :as edn]
+            [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
             [cognitect.transit :as transit]))
 
@@ -27,7 +28,7 @@
                :body any?)
   :ret byte-array?)
 
-(defmulti ^:private decode-stream
+(defmulti  decode-stream
   "Encodes the string using the given content-type."
   (fn [content-type body] content-type))
 
@@ -45,6 +46,7 @@
 
 (defmethod decode-stream "application/json"
   [_ body]
+  (println body)
   (json/read (io/reader body) :key-fn keyword))
 
 (defmethod decode-stream "text/plain"
@@ -79,11 +81,11 @@
 
 (defmethod encode "text/plain"
   [_ body]
-  (.getBytes (pr-str body)))
+  (.getBytes (util/pretty body)))
 
 (defmethod encode "application/json"
   [_ body]
-  (.getBytes (json/write-str body)))
+  (.getBytes (json/write-str body :key-fn util/unkeyword)))
 
 (defmethod encode "application/edn"
   [_ body]

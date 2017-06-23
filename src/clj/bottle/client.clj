@@ -2,31 +2,14 @@
   (:require [aleph.http :as http]
             [manifold.stream :as s]
             [bottle.message :as message]
-            [bottle.users :as users]))
-
-(def content-type "application/transit+json")
-
-(defn receive!
-  ([conn]
-   (receive! conn 100))
-  ([conn timeout]
-   (let [out @(s/try-take! conn :drained timeout :timeout)]
-     (if (contains? #{:drained :timeout} out) out (message/decode content-type out)))))
-
-(defn flush!
-  [conn]
-  (loop [out :continue]
-    (when (not= out :timeout)
-      (recur @(s/try-take! conn :drained 10 :timeout)))))
-
-(defn send!
-  [conn message]
-  (s/put! conn (message/encode content-type message)))
+            [bottle.users :as users]
+            [clojure.data.json :as json]
+            [clojure.java.io :as io]))
 
 (defn parse
   [response]
-  (let [response-content-type (get-in response [:headers "content-type"])]
-    (if (and (contains? response :body) (= response-content-type content-type))
+  (let [content-type (get-in response [:headers "content-type"])]
+    (if (contains? response :body)
       (update response :body (comp (partial message/decode content-type)))
       response)))
 
@@ -38,21 +21,16 @@
 (defn http-url [host] (str "http://" host))
 (defn ws-url [host] (str "ws://" host))
 
-(defn connect!
-  ([host token]
-   (connect! host token nil))
-  ([host token category]
-   (let [endpoint-url (str (ws-url host) "/api/websocket")
-         url (if category
-               (str endpoint-url "/" (name category))
-               endpoint-url)
-         url (str url "?token=" token)
-         conn @(http/websocket-client url)]
-     conn)))
-
 (defprotocol Client
   (authenticate [this credentials])
   (search [this term]))
+
+(defn maybe-parse
+  [response]
+  (let [content-type (get-in response [:headers "content-type"])]
+    (if (contains? response :body)
+      (update response :body (comp (partial message/decode content-type)))
+      response)))
 
 (defrecord ServiceClient [host token]
   Client
@@ -63,16 +41,18 @@
                                 :body (String. (message/encode "application/json" credentials) "UTF-8")
                                 :throw-exceptions false})]
 
-      (if (= (:status response) 201)
-        (assoc this :token (-> response :body slurp))
-        (println (slurp (:body response))))))
+      (when (= (:status response) 201)
+        (assoc this :token (-> response :body slurp)))))
 
   (search [this term]
-    (parse @(http/get (str (http-url host) "/api/things")
-                      {:headers {"Accept" "application/json"
-                                 "Authorization" (str "Token " token)}
-                       :query-params {"term" (name term)}
-                       :throw-exceptions false}))))
+    (let [{:keys [status body] :as response} (parse @(http/get (str (http-url host) "/api/things")
+                                       {:headers {"Accept" "application/json"
+                                                  "Authorization" (str "Token " token)}
+                                        :query-params {"term" (name term)}
+                                        :throw-exceptions false}))]
+      (if (= status 200)
+        {:status :ok :things body}
+        {:status :error :response response}))))
 
 (defn client
   [{:keys [host]}]
